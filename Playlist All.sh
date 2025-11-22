@@ -27,7 +27,7 @@ main() {
 	}
 	'
 	
-	local types=( "wav" "wv" "flac" "ogg" "mp3" "mp4" "avi" "mkv" )
+	local types=( "wav" "wv" "flac" "ogg" "mp3" "mp4" "avi" "mkv" "m4a" "opus" )
 	
 	local dirpath="${uri#file://}"
 	dirpath="${dirpath//%20/ }"
