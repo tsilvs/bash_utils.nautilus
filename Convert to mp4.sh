@@ -13,12 +13,13 @@ main() {
 	dirpath="${dirpath//%20/ }"
 	local dirname="${dirpath##*/}"
 	local ext="${dirname##*.}"
+	ext="${ext,,}"
 	
 	local input_file=""
 	local fail_summ=""
 	local fail_body=""
 	
-	if [[ " ${types[@]} " =~ " ${ext,,} " ]]; then
+	if [[ " ${types[@]} " =~ " $ext " ]]; then
 		input_file="$dirpath"
 	else
 		fail_summ="Invalid file type"
