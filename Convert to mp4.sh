@@ -33,10 +33,19 @@ main() {
 	local success_body="Saved: ${new_file##*/}"
 	
 	if [ "$input_file" ]; then
-		echo "DEBUG: input_file='$input_file'" > /tmp/nautilus-debug.log
-		notify-send "$wip_summ" "$wip_body" -t $timeout
-		ffmpeg -i "$input_file" -vf "scale='if(mod(iw,2),iw+1,iw)':'if(mod(ih,2),ih+1,ih)'" -c:v libx264 -c:a aac -y "$new_file" 2>/tmp/ffmpeg-error.log
-		[ ${PIPESTATUS[0]} -ne 0 ] && input_file="" && fail_summ="Conversion failed" && fail_body="FFmpeg error during call: \"$(which ffmpeg) -i "$input_file" -c:v libx264 -c:a aac -y "$new_file"\"."
+		notify-send "$wip_summ" "$wip_body" -t $timeout &
+		local error_msg=$(ffmpeg -i "$input_file" \
+			-vf "pad=ceil(iw/2)*2:ceil(ih/2)*2,scale=trunc(iw/2)*2:trunc(ih/2)*2" \
+			-c:v libx264 -profile:v baseline -level 3.0 \
+			-pix_fmt yuv420p \
+			-c:a aac -b:a 128k -ar 48000 \
+			-movflags +faststart \
+			-y "$new_file" 2>&1)
+		if [ $? -ne 0 ]; then
+			input_file=""
+			fail_summ="Conversion failed"
+			fail_body="FFmpeg error"
+		fi
 	fi
 
 	if [ "$input_file" ]; then
@@ -44,8 +53,8 @@ main() {
 			notify-send \
 				"$success_summ" \
 				"$success_body" \
-				-A "open=" \
-				-A "del=" \
+				-A "open=Open" \
+				-A "del=Delete" \
 				--wait \
 				-t $timeout
 		)
@@ -58,9 +67,16 @@ main() {
 				;;
 		esac
 	else
-		notify-send \
-			"$fail_summ" \
-			"$fail_body"
+		act=$(
+			notify-send \
+				"$fail_summ" \
+				"$fail_body" \
+				-A "copy=Copy error" \
+				--wait
+		)
+		if [ "$act" = "copy" ]; then
+			echo -n "${error_msg:-$fail_body}" | xclip -selection clipboard
+		fi
 		[ -f "$new_file" ] && rm "$new_file"
 	fi
 
