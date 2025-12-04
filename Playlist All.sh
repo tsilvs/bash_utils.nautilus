@@ -1,83 +1,69 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-prop_get() {
-	local json="$1"
-	local prop="$2"
-	echo "$json" | jq -r "$prop"
+# Nautilus script: generates M3U playlist from media files in current directory
+
+exec 2>> /tmp/nautilus_playlist_debug.log
+set -x
+
+# Config
+TIMEOUT=10000
+TYPES=("wav" "wv" "flac" "ogg" "mp3" "mp4" "avi" "mkv" "m4a" "opus")
+
+# i18n messages
+MSG_SUCC_SUMM="File Generated"
+MSG_SUCC_BODY="Playlist created successfully."
+MSG_FAIL_SUMM="Error"
+MSG_FAIL_BODY="No media files found."
+MSG_OPEN="Open File"
+MSG_DEL="Delete File"
+
+# URL decode function
+urldecode() {
+	printf '%b' "${1//%/\\x}"
 }
 
-main() {
-	local lang="en"
-	local timeout='10000'
-	local uri="$NAUTILUS_SCRIPT_CURRENT_URI"
-	local i18n='
-	{
-		"en": {
-			"succ": {
-				"summ": "File Generated",
-				"body": "Playlist has been created successfully."
-			},
-			"fail": {
-				"summ": "Error",
-				"body": "Playlist making failed. No media files found."
-			},
-			"open": "Open File",
-			"del": "Delete File"
-		}
-	}
-	'
-	
-	local types=( "wav" "wv" "flac" "ogg" "mp3" "mp4" "avi" "mkv" "m4a" "opus" )
-	
-	local dirpath="${uri#file://}"
-	dirpath="${dirpath//%20/ }"
-	local dirname="${dirpath##*/}"
-	
-	local playlist_file="$dirpath/$dirname-Full.m3u"
-	echo "#EXTM3U" > "$playlist_file"
+# Get directory from Nautilus
+DIRPATH="${NAUTILUS_SCRIPT_CURRENT_URI:-}"
+if [ -z "$DIRPATH" ]; then
+	DIRPATH=$(dirname "${NAUTILUS_SCRIPT_SELECTED_FILE_PATHS%%$'\n'*}")
+fi
 
-	local find_cmd="find \"$dirpath\" -type f \("
-	for i in "${!types[@]}"; do
-		[[ $i -gt 0 ]] && find_cmd+=" -o"
-		find_cmd+=" -iname \"*.${types[i]}\""
-	done
-	find_cmd+=" \)"
+# Decode URI
+DIRPATH="${DIRPATH#file://}"
+DIRPATH=$(urldecode "$DIRPATH")
 
-	local file_count=0
-	local found_files=""
-	while read -r file; do
-		rel_path="${file#$dirpath/}"
-		found_files+="$rel_path\n" 
-		((file_count++))
-	done < <(eval "$find_cmd")
+DIRNAME="${DIRPATH##*/}"
+PLAYLIST="${DIRPATH}/${DIRNAME}-Full.m3u"
 
-	echo -e $found_files | sort >> "$playlist_file"
+# Generate playlist
+echo "#EXTM3U" > "$PLAYLIST"
+COUNT=0
+
+# Build find command with properly quoted patterns
+FIND_CMD="find \"$DIRPATH\" -maxdepth 1 -type f \\("
+for i in "${!TYPES[@]}"; do
+	[ $i -gt 0 ] && FIND_CMD+=" -o"
+	FIND_CMD+=" -iname \"*.${TYPES[i]}\""
+done
+FIND_CMD+=" \\) | sort"
+
+while IFS= read -r file; do
+	echo "${file#$DIRPATH/}" >> "$PLAYLIST"
+	((COUNT++))
+done < <(eval "$FIND_CMD")
+
+# Notify result
+if [ $COUNT -gt 0 ]; then
+	ACTION=$(notify-send "$MSG_SUCC_SUMM" "$MSG_SUCC_BODY" \
+		-A "open=$MSG_OPEN" \
+		-A "del=$MSG_DEL" \
+		--wait -t $TIMEOUT)
 	
-	if [ $file_count -gt 0 ]; then
-		act=$(
-			notify-send \
-				"$(prop_get "$i18n" ".$lang.succ.summ")" \
-				"$(prop_get "$i18n" ".$lang.succ.body")" \
-				-A "open=$(prop_get "$i18n" ".$lang.open")" \
-				-A "del=$(prop_get "$i18n" ".$lang.del")" \
-				--wait \
-				-t $timeout
-		)
-		case "$act" in
-			"open") xdg-open "$playlist_file" ;;
-			"del") 
-				if [ -f "$playlist_file" ]; then
-					rm "$playlist_file"
-				fi
-				;;
-		esac
-	else
-		notify-send \
-			"$(prop_get "$i18n" ".$lang.fail.summ")" \
-			"$(prop_get "$i18n" ".$lang.fail.body")"
-		[ -f "$playlist_file" ] && rm "$playlist_file"
-	fi
-	return 0
-}
-
-main "$@"
+	case "$ACTION" in
+		open) xdg-open "$PLAYLIST" ;;
+		del) rm -f "$PLAYLIST" ;;
+	esac
+else
+	notify-send "$MSG_FAIL_SUMM" "$MSG_FAIL_BODY"
+	rm -f "$PLAYLIST"
+fi
