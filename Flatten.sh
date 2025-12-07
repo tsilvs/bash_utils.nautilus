@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 # SCRIPT_DIR="${0%/*}"
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 set -e
 set -u

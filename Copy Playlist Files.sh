@@ -2,7 +2,7 @@
 
 # SCRIPT_DIR="${0%/*}"
 
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 main() {
 	local dv1=""

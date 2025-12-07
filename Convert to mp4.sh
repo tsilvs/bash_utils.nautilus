@@ -2,7 +2,7 @@
 
 # Nautilus: Convert to MP4
 
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 main() {
 	local lang="en"

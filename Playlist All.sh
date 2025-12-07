@@ -2,7 +2,7 @@
 
 # Nautilus script: generates M3U playlist from media files in current directory
 
-SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+# SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 exec 2>> /tmp/nautilus_playlist_debug.log
 set -x
