@@ -2,6 +2,8 @@
 
 # Nautilus script: generates M3U playlist from media files in current directory
 
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
+
 exec 2>> /tmp/nautilus_playlist_debug.log
 set -x
 
@@ -39,8 +41,8 @@ PLAYLIST="${DIRPATH}/${DIRNAME}-Full.m3u"
 echo "#EXTM3U" > "$PLAYLIST"
 COUNT=0
 
-# Build find command with properly quoted patterns
-FIND_CMD="find \"$DIRPATH\" -maxdepth 1 -type f \\("
+# Build find command with properly quoted patterns (recursive, no symlink loops)
+FIND_CMD="find -L \"$DIRPATH\" -type f \\("
 for i in "${!TYPES[@]}"; do
 	[ $i -gt 0 ] && FIND_CMD+=" -o"
 	FIND_CMD+=" -iname \"*.${TYPES[i]}\""

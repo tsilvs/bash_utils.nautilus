@@ -1,8 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-scriptroot="${0%/*}"
-
-#!/bin/bash
+# SCRIPT_DIR="${0%/*}"
+SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 set -e
 set -u
