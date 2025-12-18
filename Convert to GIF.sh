@@ -1,11 +1,10 @@
 #!/usr/bin/env bash
 
-# Nautilus: Convert to MP4
+# Nautilus: Convert to GIF
 
 # SCRIPT_DIR="$(dirname "${BASH_SOURCE[0]}")"
 
 main() {
-	local lang="en"
 	local timeout='10000'
 	local uri=$(echo "$NAUTILUS_SCRIPT_SELECTED_URIS" | head -n1)
 	local input_file="${uri#file://}"
@@ -28,8 +27,8 @@ main() {
 		fail_body="File must be: ${types[*]}. Got \"${ext}\"."
 	fi
 	
-	local new_file="${input_file%.*}_converted.mp4"
-	local wip_summ="Converting to MP4"
+	local new_file="${input_file%.*}_converted.gif"
+	local wip_summ="Converting to GIF"
 	local wip_body="Processing: ${input_file##*/}"
 	local success_summ="Conversion complete"
 	local success_body="Saved: ${new_file##*/}"
@@ -37,11 +36,8 @@ main() {
 	if [ "$input_file" ]; then
 		notify-send "$wip_summ" "$wip_body" -t $timeout &
 		local error_msg=$(ffmpeg -i "$input_file" \
-			-vf "pad=ceil(iw/2)*2:ceil(ih/2)*2,scale=trunc(iw/2)*2:trunc(ih/2)*2" \
-			-c:v libx264 -profile:v baseline -level 3.0 \
-			-pix_fmt yuv420p \
-			-c:a aac -b:a 128k -ar 48000 \
-			-movflags +faststart \
+			-vf "fps=15,split[s0][s1];[s0]palettegen=max_colors=256[p];[s1][p]paletteuse=dither=bayer:bayer_scale=5" \
+			-loop 0 \
 			-y "$new_file" 2>&1)
 		if [ $? -ne 0 ]; then
 			input_file=""
