@@ -1,8 +1,12 @@
-#!/usr/bin/env bash -l -c
-
+#!/usr/bin/env bash
 # Nautilus: PDF Compress
 
 set -euo pipefail
+
+# exec >> /tmp/nautilus-script.log 2>&1
+# set -x  # trace all commands
+
+# notify-send "Debug" "Script started"
 
 decode_uri() {
 	local input="$1"
@@ -54,21 +58,10 @@ process_file() {
 
 main() {
 	if ! declare -F "pdf.cmp" >/dev/null 2>&1; then
-		# Phase 1: source typical profile/bashrc init files
-		local _rc
-		for _rc in /etc/profile /etc/bashrc /etc/bash.bashrc "${HOME}/.profile" "${HOME}/.bashrc"; do
-			# shellcheck source=/dev/null
-			[[ -f "$_rc" ]] && source "$_rc" 2>/dev/null || true
-		done
-	fi
-
-	if ! declare -F "pdf.cmp" >/dev/null 2>&1; then
-		# Phase 2: source pdf_utils.sh directly from each bash_utils scope path
 		local _scope _candidate
 		for _scope in /etc/profile.d /etc/bashrc.d "${HOME}/.profile.d" "${HOME}/.bashrc.d"; do
 			_candidate="${_scope}/tsilvs/bash_utils/pdf_utils.sh"
 			if [[ -f "$_candidate" ]]; then
-				# shellcheck source=/dev/null
 				source "$_candidate"
 				break
 			fi
@@ -76,7 +69,7 @@ main() {
 	fi
 
 	if ! declare -F "pdf.cmp" >/dev/null 2>&1; then
-		notify-send "Missing dependency" 'try installing `tsilvs/bash_utils`'
+		notify-send "Missing dependency" '`tsilvs/bash_utils` not found in typical paths.'
 		return 1
 	fi
 
@@ -99,6 +92,4 @@ main() {
 	done
 }
 
-if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
-	main "$@"
-fi
+main "$@"
